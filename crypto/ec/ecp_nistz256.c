@@ -1106,6 +1106,7 @@ __owur static int ecp_nistz256_set_from_affine(EC_POINT *out, const EC_GROUP *gr
 {
     BIGNUM *x, *y;
     BN_ULONG d_x[P256_LIMBS], d_y[P256_LIMBS];
+    BN_ULONG x_ret[P256_LIMBS], y_ret[P256_LIMBS];
     int ret = 0;
 
     x = BN_new();
@@ -1116,11 +1117,17 @@ __owur static int ecp_nistz256_set_from_affine(EC_POINT *out, const EC_GROUP *gr
         BN_free(x);
         return 0;
     }
-    memcpy(d_x, in->X, sizeof(d_x));
-    bn_set_static_words(x, d_x, P256_LIMBS);
 
+    memcpy(d_x, in->X, sizeof(d_x));
     memcpy(d_y, in->Y, sizeof(d_y));
-    bn_set_static_words(y, d_y, P256_LIMBS);
+
+    ecp_nistz256_from_mont(x_ret, d_x);
+    if (!bn_set_words(x, x_ret, P256_LIMBS))
+        return 0;
+
+    ecp_nistz256_from_mont(y_ret, d_y);
+    if (!bn_set_words(y, y_ret, P256_LIMBS))
+        return 0;
 
     ret = EC_POINT_set_affine_coordinates_GFp(group, out, x, y, ctx);
 
